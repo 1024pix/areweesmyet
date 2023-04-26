@@ -45,13 +45,19 @@
         document.getElementById('description').innerHTML = `We are migrating our API to ESM modules. <a href="https://github.com/${project}/tree/${branch}">See the code</a>`;
       }
 
+      function formatToReadableDate(stringToFormat){
+        if(typeof stringToFormat !== 'string') return stringToFormat;
+        const date = new Date(stringToFormat);
+        return 'le ' + date.toLocaleDateString() + ' vers ' + date.getHours() + 'h';
+      }
+
       function displayChart(results) {
         const ctx = document.getElementById('chart');
 
         new Chart(ctx, {
           type: 'line',
           data: {
-            labels: results.map((r) => r.lastWorkflow.created_at),
+            labels: results.map((r) => r.lastWorkflow.created_at).map(formatToReadableDate),
             datasets: [{
               label: 'Number of failed tests',
               data: results.map((r) => r.failed),
