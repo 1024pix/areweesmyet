@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width"/>
+    <title>Are We ESM Yet?</title>
+    <style type="text/css">
+      body {
+        text-align: center;
+      }
+      #status {
+        font-size: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Are We ESM Yet?</h1>
+    <div id="status">Loading ....</div>
+    <script type="text/javascript">
+      function circleAPI(path) {
+        return fetch(`https://circleci.com/api/v2${path}`).then(r => r.json());
+      }
+      function updateStatus(status) {
+        document.getElementById('status').textContent = status;
+      }
+      async function areWeESMYet() {
+        const branch = "pix-7202-migrate-api-module-from-cjs-to-esm";
+        const project = "1024pix/pix";
+        const pipelines = await circleAPI(`/project/gh/${project}/pipeline?branch=${branch}`);
+        const lastPipeline = pipelines.items[0];
+        const workflows = await circleAPI(`/pipeline/${lastPipeline.id}/workflow`);
+        const lastWorkflow = await circleAPI(`/workflow/${workflows.items[0].id}`);
+        const jobs = await circleAPI(`/workflow/${workflows.items[0].id}/job`);
+        const apiJob = jobs.items.find((i) => i.name === 'api_build_and_test');
+        const tests = await circleAPI(`/project/gh/${project}/${apiJob.job_number}/tests`);
+        const nbFailed = tests.items.filter((i) => i.result !== 'success').length;
+        if (lastWorkflow.status === 'failed') {
+          updateStatus(`No (last build was ${lastWorkflow.status}) ${nbFailed} failed`);
+        } else {
+          updateStatus(`Maybe (last build was ${lastWorkflow.status})`);
+        }
+      }
+      areWeESMYet();
+    </script>
+  </body>
+</html>
