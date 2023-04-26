@@ -22,6 +22,7 @@
     <h1>Are We ESM Yet?</h1>
     <div id="status">Loading ....</div>
     <canvas id="chart"></canvas>
+    <small id="description"></small>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript">
       function circleAPI(path) {
@@ -38,6 +39,10 @@
         } else {
           updateStatus(`Maybe (last build was ${lastWorkflow.status})`);
         }
+      }
+
+      function displayProjectDescription(project, branch) {
+        document.getElementById('description').innerHTML = `We are migrating our API to ESM modules. <a href="https://github.com/${project}/tree/${branch}">See the code</a>`;
       }
 
       function displayChart(results) {
@@ -80,6 +85,7 @@
       async function areWeESMYet() {
         const branch = "pix-7202-migrate-api-module-from-cjs-to-esm";
         const project = "1024pix/pix";
+        displayProjectDescription(project, branch);
         const pipelines = await circleAPI(`/project/gh/${project}/pipeline?branch=${branch}`);
         const lastPipelines = pipelines.items.reverse();
         const results = await Promise.all(lastPipelines.map(({ id }) => {
