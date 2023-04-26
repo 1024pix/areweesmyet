@@ -34,7 +34,7 @@
       function displayStatus(results) {
         const { lastWorkflow, failed, total } = results[results.length - 1];
         if (lastWorkflow.status === 'failed') {
-          updateStatus(`No (last build was ${lastWorkflow.status}) ${failed}/${total} failed`);
+          updateStatus(`No (last build was ${lastWorkflow.status}) ${failed}/${total} (at least) failed`);
         } else {
           updateStatus(`Maybe (last build was ${lastWorkflow.status})`);
         }
