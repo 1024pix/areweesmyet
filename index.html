@@ -11,11 +11,18 @@
       #status {
         font-size: 2rem;
       }
+      #chart {
+        width: 80vw;
+        height: 30vh;
+        margin: 0 auto;
+      }
     </style>
   </head>
   <body>
     <h1>Are We ESM Yet?</h1>
     <div id="status">Loading ....</div>
+    <canvas id="chart"></canvas>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript">
       function circleAPI(path) {
         return fetch(`https://circleci.com/api/v2${path}`).then(r => r.json());
@@ -23,22 +30,66 @@
       function updateStatus(status) {
         document.getElementById('status').textContent = status;
       }
+
+      function displayStatus(results) {
+        const { lastWorkflow, failed, total } = results[results.length - 1];
+        if (lastWorkflow.status === 'failed') {
+          updateStatus(`No (last build was ${lastWorkflow.status}) ${failed}/${total} failed`);
+        } else {
+          updateStatus(`Maybe (last build was ${lastWorkflow.status})`);
+        }
+      }
+
+      function displayChart(results) {
+        const ctx = document.getElementById('chart');
+
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: results.map((r) => r.lastWorkflow.created_at),
+            datasets: [{
+              label: 'Number of failed tests',
+              data: results.map((r) => r.failed),
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      async function getTestResultForPipeline(project, pipelineId) {
+        const workflows = await circleAPI(`/pipeline/${pipelineId}/workflow`);
+        const lastWorkflow = await circleAPI(`/workflow/${workflows.items[0].id}`);
+        const jobs = await circleAPI(`/workflow/${workflows.items[0].id}/job`);
+        const apiJob = jobs.items.find((i) => i.name === 'api_build_and_test');
+        if (apiJob && apiJob.job_number) {
+          const tests = await circleAPI(`/project/gh/${project}/${apiJob.job_number}/tests`);
+          const nbFailed = tests.items.filter((i) => i.result !== 'success').length;
+          return { lastWorkflow, failed: nbFailed, total: tests.items.length };
+        } else {
+          return { lastWorkflow, failed: -1, total: -1 };
+        }
+      }
+
       async function areWeESMYet() {
         const branch = "pix-7202-migrate-api-module-from-cjs-to-esm";
         const project = "1024pix/pix";
         const pipelines = await circleAPI(`/project/gh/${project}/pipeline?branch=${branch}`);
-        const lastPipeline = pipelines.items[0];
-        const workflows = await circleAPI(`/pipeline/${lastPipeline.id}/workflow`);
-        const lastWorkflow = await circleAPI(`/workflow/${workflows.items[0].id}`);
-        const jobs = await circleAPI(`/workflow/${workflows.items[0].id}/job`);
-        const apiJob = jobs.items.find((i) => i.name === 'api_build_and_test');
-        const tests = await circleAPI(`/project/gh/${project}/${apiJob.job_number}/tests`);
-        const nbFailed = tests.items.filter((i) => i.result !== 'success').length;
-        if (lastWorkflow.status === 'failed') {
-          updateStatus(`No (last build was ${lastWorkflow.status}) ${nbFailed}/${tests.items.length} failed`);
-        } else {
-          updateStatus(`Maybe (last build was ${lastWorkflow.status})`);
-        }
+        const lastPipelines = pipelines.items.reverse();
+        const results = await Promise.all(lastPipelines.map(({ id }) => {
+          return getTestResultForPipeline(project, id);
+        })).then((result) => {
+            return result.filter(r => r.failed !== -1);
+        });
+
+        displayStatus(results);
+        displayChart(results);
       }
       areWeESMYet();
     </script>
