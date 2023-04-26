@@ -85,7 +85,9 @@
         const results = await Promise.all(lastPipelines.map(({ id }) => {
           return getTestResultForPipeline(project, id);
         })).then((result) => {
-            return result.filter(r => r.failed !== -1);
+            return result
+              .filter(r => r.failed !== -1)
+              .filter(r => !['canceled', 'failing'].includes(r.lastWorkflow.status));
         });
 
         displayStatus(results);
