@@ -55,13 +55,17 @@
         if (typeof stringToFormat !== "string") return stringToFormat;
         const date = new Date(stringToFormat);
         return (
-          "le " + date.toLocaleDateString() + " vers " + date.getHours() + "h"
+          "le " +
+          date.toLocaleDateString() +
+          " vers " +
+          date.getHours() +
+          "h" +
+          (date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes())
         );
       }
 
       function displayChart(results) {
         const ctx = document.getElementById("chart");
-        console.log(results);
         new Chart(ctx, {
           data: {
             labels: results
@@ -74,31 +78,27 @@
                 data: results.map((r) => r.failed),
                 borderWidth: 1,
                 yAxisID: "A",
-                borderColor:'red'
+                borderColor: "red",
               },
               {
                 type: "bar",
                 label: "Executed tests",
                 data: results.map((r) => r.total),
                 yAxisID: "B",
-                borderColor: 'grey',
+                borderColor: "grey",
               },
             ],
           },
           options: {
             scales: {
-              y: [
+              yAxis: [
                 {
                   id: "A",
                   type: "linear",
-                  position: "left",
-                  beginAtZero: true,
                 },
                 {
                   id: "B",
                   type: "linear",
-                  position: "right",
-                  beginAtZero: true,
                 },
               ],
             },
@@ -141,6 +141,7 @@
         ).then((result) => {
           return result
             .filter((r) => r.failed !== -1)
+            .filter((r) => r.total > 8800)
             .filter(
               (r) => !["canceled", "failing"].includes(r.lastWorkflow.status)
             );
