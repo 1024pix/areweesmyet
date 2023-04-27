@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width"/>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
     <title>Are We ESM Yet?</title>
     <style type="text/css">
       body {
@@ -26,62 +26,100 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript">
       function circleAPI(path) {
-        return fetch(`https://circleci.com/api/v2${path}`).then(r => r.json());
+        return fetch(`https://circleci.com/api/v2${path}`).then((r) =>
+          r.json()
+        );
       }
       function updateStatus(status) {
-        document.getElementById('status').textContent = status;
+        document.getElementById("status").textContent = status;
       }
 
       function displayStatus(results) {
         const { lastWorkflow, failed, total } = results[results.length - 1];
-        if (lastWorkflow.status === 'failed') {
-          updateStatus(`No (last build was ${lastWorkflow.status}) ${failed}/${total} (at least) failed`);
+        if (lastWorkflow.status === "failed") {
+          updateStatus(
+            `No (last build was ${lastWorkflow.status}) ${failed}/${total} failed`
+          );
         } else {
           updateStatus(`Maybe (last build was ${lastWorkflow.status})`);
         }
       }
 
       function displayProjectDescription(project, branch) {
-        document.getElementById('description').innerHTML = `We are migrating our API to ESM modules. <a href="https://github.com/${project}/tree/${branch}">See the code</a>`;
+        document.getElementById(
+          "description"
+        ).innerHTML = `We are migrating our API to ESM modules. <a href="https://github.com/${project}/tree/${branch}">See the code</a>`;
       }
 
-      function formatToReadableDate(stringToFormat){
-        if(typeof stringToFormat !== 'string') return stringToFormat;
+      function formatToReadableDate(stringToFormat) {
+        if (typeof stringToFormat !== "string") return stringToFormat;
         const date = new Date(stringToFormat);
-        return 'le ' + date.toLocaleDateString() + ' vers ' + date.getHours() + 'h';
+        return (
+          "le " + date.toLocaleDateString() + " vers " + date.getHours() + "h"
+        );
       }
 
       function displayChart(results) {
-        const ctx = document.getElementById('chart');
-
+        const ctx = document.getElementById("chart");
+        console.log(results);
         new Chart(ctx, {
-          type: 'line',
           data: {
-            labels: results.map((r) => r.lastWorkflow.created_at).map(formatToReadableDate),
-            datasets: [{
-              label: 'Number of failed tests',
-              data: results.map((r) => r.failed),
-              borderWidth: 1
-            }]
+            labels: results
+              .map((r) => r.lastWorkflow.created_at)
+              .map(formatToReadableDate),
+            datasets: [
+              {
+                type: "line",
+                label: "Failed tests",
+                data: results.map((r) => r.failed),
+                borderWidth: 1,
+                yAxisID: "A",
+                borderColor:'red'
+              },
+              {
+                type: "bar",
+                label: "Executed tests",
+                data: results.map((r) => r.total),
+                yAxisID: "B",
+                borderColor: 'grey',
+              },
+            ],
           },
           options: {
             scales: {
-              y: {
-                beginAtZero: true
-              }
-            }
-          }
+              y: [
+                {
+                  id: "A",
+                  type: "linear",
+                  position: "left",
+                  beginAtZero: true,
+                },
+                {
+                  id: "B",
+                  type: "linear",
+                  position: "right",
+                  beginAtZero: true,
+                },
+              ],
+            },
+          },
         });
       }
 
       async function getTestResultForPipeline(project, pipelineId) {
         const workflows = await circleAPI(`/pipeline/${pipelineId}/workflow`);
-        const lastWorkflow = await circleAPI(`/workflow/${workflows.items[0].id}`);
+        const lastWorkflow = await circleAPI(
+          `/workflow/${workflows.items[0].id}`
+        );
         const jobs = await circleAPI(`/workflow/${workflows.items[0].id}/job`);
-        const apiJob = jobs.items.find((i) => i.name === 'api_build_and_test');
+        const apiJob = jobs.items.find((i) => i.name === "api_build_and_test");
         if (apiJob && apiJob.job_number) {
-          const tests = await circleAPI(`/project/gh/${project}/${apiJob.job_number}/tests`);
-          const nbFailed = tests.items.filter((i) => i.result !== 'success').length;
+          const tests = await circleAPI(
+            `/project/gh/${project}/${apiJob.job_number}/tests`
+          );
+          const nbFailed = tests.items.filter(
+            (i) => i.result !== "success"
+          ).length;
           return { lastWorkflow, failed: nbFailed, total: tests.items.length };
         } else {
           return { lastWorkflow, failed: -1, total: -1 };
@@ -92,14 +130,20 @@
         const branch = "pix-7202-migrate-api-module-from-cjs-to-esm";
         const project = "1024pix/pix";
         displayProjectDescription(project, branch);
-        const pipelines = await circleAPI(`/project/gh/${project}/pipeline?branch=${branch}`);
+        const pipelines = await circleAPI(
+          `/project/gh/${project}/pipeline?branch=${branch}`
+        );
         const lastPipelines = pipelines.items.reverse();
-        const results = await Promise.all(lastPipelines.map(({ id }) => {
-          return getTestResultForPipeline(project, id);
-        })).then((result) => {
-            return result
-              .filter(r => r.failed !== -1)
-              .filter(r => !['canceled', 'failing'].includes(r.lastWorkflow.status));
+        const results = await Promise.all(
+          lastPipelines.map(({ id }) => {
+            return getTestResultForPipeline(project, id);
+          })
+        ).then((result) => {
+          return result
+            .filter((r) => r.failed !== -1)
+            .filter(
+              (r) => !["canceled", "failing"].includes(r.lastWorkflow.status)
+            );
         });
 
         displayStatus(results);
