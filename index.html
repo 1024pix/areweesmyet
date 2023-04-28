@@ -60,7 +60,9 @@
           " vers " +
           date.getHours() +
           "h" +
-          (date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes())
+          (date.getUTCMinutes() < 10
+            ? "0" + date.getUTCMinutes()
+            : date.getMinutes())
         );
       }
 
@@ -77,30 +79,48 @@
                 label: "Failed tests",
                 data: results.map((r) => r.failed),
                 borderWidth: 1,
-                yAxisID: "A",
+                yAxisID: "yAxisFailed",
                 borderColor: "red",
               },
               {
                 type: "bar",
                 label: "Executed tests",
                 data: results.map((r) => r.total),
-                yAxisID: "B",
+                yAxisID: "yAxisExecuted",
                 borderColor: "grey",
               },
             ],
           },
           options: {
             scales: {
-              yAxis: [
-                {
-                  id: "A",
-                  type: "linear",
-                },
-                {
-                  id: "B",
-                  type: "linear",
-                },
-              ],
+              yAxisFailed: {
+                position: "right",
+                beginAtZero: true,
+                suggestedMin: 0,
+                title:{
+                  display: true,
+                  text: 'Failed tests',
+                  color: 'red',
+                  font: {
+                    size: 18,
+                    weight: 'bold'
+                  }
+                }
+              },
+              yAxisExecuted: {
+                position: "left",
+                beginAtZero: true,
+                suggestedMin: 0,
+                title:{
+                  display: true,
+                  text: 'Executed tests',
+                  color: 'grey',
+                  font: {
+                    size: 18,
+                    weight: 'bold'
+                  }
+                }
+              },
             },
           },
         });
