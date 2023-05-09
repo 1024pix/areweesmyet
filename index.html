@@ -40,6 +40,8 @@
           updateStatus(
             `No (last build was ${lastWorkflow.status}) ${failed}/${total} failed`
           );
+        } else if (lastWorkflow.status === 'success') {
+          updateStatus(`Not yet, but at least the last build was successful`);
         } else {
           updateStatus(`Maybe (last build was ${lastWorkflow.status})`);
         }
