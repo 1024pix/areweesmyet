@@ -35,17 +35,10 @@
         document.getElementById("status").textContent = status;
       }
 
-      function displayStatus(results) {
-        const { lastWorkflow, failed, total } = results[results.length - 1];
-        if (lastWorkflow.status === "failed") {
-          updateStatus(
-            `No (last build was ${lastWorkflow.status}) ${failed}/${total} failed`
-          );
-        } else if (lastWorkflow.status === 'success') {
-          updateStatus(`Not yet, but at least the last build was successful`);
-        } else {
-          updateStatus(`Maybe (last build was ${lastWorkflow.status})`);
-        }
+      function displayStatus() {
+        updateStatus(
+          `Yes on the dev branch, soon in production`
+        );
       }
 
       function displayProjectDescription(project, branch) {
@@ -153,6 +146,7 @@
         const branch = "pix-7202-migrate-api-module-from-cjs-to-esm";
         const project = "1024pix/pix";
         displayProjectDescription(project, branch);
+        displayStatus();
         const pipelines = await circleAPI(
           `/project/gh/${project}/pipeline?branch=${branch}`
         );
@@ -170,7 +164,6 @@
             );
         });
 
-        displayStatus(results);
         displayChart(results);
       }
       areWeESMYet();
