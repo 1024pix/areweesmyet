@@ -9,162 +9,28 @@
         text-align: center;
       }
       #status {
-        font-size: 2rem;
-      }
-      #chart {
-        width: 80vw;
-        height: 30vh;
-        margin: 0 auto;
+        font-size: 3rem;
       }
     </style>
   </head>
   <body>
-    <h1>Are We ESM Yet?</h1>
+    <h2>Are We ESM Yet?</h2>
     <div id="status">Loading ....</div>
-    <p><a href="https://steampipe-monitoring.pix.digital/pix.dashboard.esm">Follow the status canary of the canary deployment.</a></p>
-    <canvas id="chart"></canvas>
-    <small id="description"></small>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript">
-      function circleAPI(path) {
-        return fetch(`https://circleci.com/api/v2${path}`).then((r) =>
-          r.json()
-        );
-      }
       function updateStatus(status) {
         document.getElementById("status").textContent = status;
       }
 
       function displayStatus() {
         updateStatus(
-          `Yes on the dev branch, soon in production`
+          `YES`
         );
-      }
-
-      function displayProjectDescription(project, branch) {
-        document.getElementById(
-          "description"
-        ).innerHTML = `We are migrating our API to ESM modules. <a href="https://github.com/${project}/tree/${branch}">See the code</a>`;
-      }
-
-      function formatToReadableDate(stringToFormat) {
-        if (typeof stringToFormat !== "string") return stringToFormat;
-        const date = new Date(stringToFormat);
-        return (
-          "le " +
-          date.toLocaleDateString() +
-          " vers " +
-          date.getHours() +
-          "h" +
-          (date.getUTCMinutes() < 10
-            ? "0" + date.getUTCMinutes()
-            : date.getMinutes())
-        );
-      }
-
-      function displayChart(results) {
-        const ctx = document.getElementById("chart");
-        new Chart(ctx, {
-          data: {
-            labels: results
-              .map((r) => r.lastWorkflow.created_at)
-              .map(formatToReadableDate),
-            datasets: [
-              {
-                type: "line",
-                label: "Failed tests",
-                data: results.map((r) => r.failed),
-                borderWidth: 1,
-                yAxisID: "yAxisFailed",
-                borderColor: "red",
-              },
-              {
-                type: "bar",
-                label: "Executed tests",
-                data: results.map((r) => r.total),
-                yAxisID: "yAxisExecuted",
-                borderColor: "grey",
-              },
-            ],
-          },
-          options: {
-            scales: {
-              yAxisFailed: {
-                position: "right",
-                beginAtZero: true,
-                suggestedMin: 0,
-                title:{
-                  display: true,
-                  text: 'Failed tests',
-                  color: 'red',
-                  font: {
-                    size: 18,
-                    weight: 'bold'
-                  }
-                }
-              },
-              yAxisExecuted: {
-                position: "left",
-                beginAtZero: true,
-                suggestedMin: 0,
-                title:{
-                  display: true,
-                  text: 'Executed tests',
-                  color: 'grey',
-                  font: {
-                    size: 18,
-                    weight: 'bold'
-                  }
-                }
-              },
-            },
-          },
-        });
-      }
-
-      async function getTestResultForPipeline(project, pipelineId) {
-        const workflows = await circleAPI(`/pipeline/${pipelineId}/workflow`);
-        const lastWorkflow = await circleAPI(
-          `/workflow/${workflows.items[0].id}`
-        );
-        const jobs = await circleAPI(`/workflow/${workflows.items[0].id}/job`);
-        const apiJob = jobs.items.find((i) => i.name === "api_build_and_test");
-        if (apiJob && apiJob.job_number) {
-          const tests = await circleAPI(
-            `/project/gh/${project}/${apiJob.job_number}/tests`
-          );
-          const nbFailed = tests.items.filter(
-            (i) => i.result !== "success"
-          ).length;
-          return { lastWorkflow, failed: nbFailed, total: tests.items.length };
-        } else {
-          return { lastWorkflow, failed: -1, total: -1 };
-        }
       }
 
       async function areWeESMYet() {
         const branch = "pix-7202-migrate-api-module-from-cjs-to-esm";
         const project = "1024pix/pix";
-        displayProjectDescription(project, branch);
         displayStatus();
-        const pipelines = await circleAPI(
-          `/project/gh/${project}/pipeline?branch=${branch}`
-        );
-        const lastPipelines = pipelines.items.reverse();
-        const results = await Promise.all(
-          lastPipelines.map(({ id }) => {
-            return getTestResultForPipeline(project, id);
-          })
-        ).then((result) => {
-          return result
-            .filter((r) => r.failed !== -1)
-            .filter((r) => r.total > 8800)
-            .filter(
-              (r) => !["canceled", "failing"].includes(r.lastWorkflow.status)
-            );
-        });
-
-        displayChart(results);
       }
       areWeESMYet();
     </script>
